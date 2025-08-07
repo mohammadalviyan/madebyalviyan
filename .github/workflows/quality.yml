@@ -1,0 +1,47 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            echo "🔍 Running TypeScript type check..."
+            bunx astro check
+          else
+            echo "⚠️ No tsconfig.json found, skipping type check"
+          fi
+
+      - name: Format check
+        run: |
+          if [ -f ".prettierrc" ]; then
+            echo "🎨 Checking code formatting..."
+            bunx prettier --check .
+          else
+            echo "⚠️ No Prettier config found, skipping format check"
+          fi
+
+      - name: Build check
+        run: |
+          echo "🔧 Testing build process..."
+          bun run build
+          echo "✅ Build completed successfully"
