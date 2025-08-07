@@ -7,14 +7,23 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
     reviewers:
       - "mohammadalviyan"
     assignees:
       - "mohammadalviyan"
     commit-message:
-      prefix: "deps"
+      prefix: "chore"
+      prefix-development: "chore"
       include: "scope"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for stability
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
