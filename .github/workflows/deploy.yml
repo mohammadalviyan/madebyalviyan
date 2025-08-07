@@ -1,0 +1,84 @@
+name: 🚀 Build & Deploy
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  build-and-deploy:
+    name: 🏗️ Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci
+      
+      - name: 🏗️ Build project
+        run: npm run build
+      
+      - name: ✅ Verify build
+        run: |
+          if [ -d "dist" ]; then
+            echo "✅ Build successful"
+            echo "📦 Build size: $(du -sh dist/ | cut -f1)"
+            echo "📁 Files: $(find dist -type f | wc -l)"
+          else
+            echo "❌ Build failed - no dist directory"
+            exit 1
+          fi
+      
+      - name: 🔧 Setup Pages
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        uses: actions/configure-pages@v5
+      
+      - name: 📤 Upload to Pages
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+      
+      - name: 🚀 Deploy to Pages
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        id: deployment
+        uses: actions/deploy-pages@v4
+      
+      - name: 🎉 Success
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          echo "🎉 Deployment completed!"
+          echo "🌐 Site URL: ${{ steps.deployment.outputs.page_url }}"
+          echo ""
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build & Deploy completed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **Live Site**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Build Size**: $(du -sh dist/ | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ **Completed**: $(date)" >> $GITHUB_STEP_SUMMARY
