@@ -16,18 +16,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '18'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Security audit
         run: |
           echo "🔒 Running security audit..."
-          bun audit || echo "⚠️ Security vulnerabilities found - please review"
+          npm audit || echo "⚠️ Security vulnerabilities found - please review"
 
       - name: Dependency review
         uses: actions/dependency-review-action@v4
