@@ -1,0 +1,80 @@
+---
+// Enhanced performance and error monitoring
+---
+<script is:inline>
+  // Critical performance optimizations
+  window.addEventListener('load', function() {
+    // Preload critical resources based on what's actually built
+    const preloadCriticalResources = () => {
+      const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+      const scripts = Array.from(document.querySelectorAll('script[src*="_astro"]'));
+      
+      // Preload first critical stylesheet
+      if (stylesheets[0] && !document.querySelector(`link[rel="preload"][href="${stylesheets[0].href}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'style';
+        link.href = stylesheets[0].href;
+        document.head.appendChild(link);
+      }
+      
+      // Preload critical scripts on mobile
+      if (window.innerWidth <= 768 && scripts[0]) {
+        const link = document.createElement('link');
+        link.rel = 'modulepreload';
+        link.href = scripts[0].src;
+        document.head.appendChild(link);
+      }
+    };
+    
+    preloadCriticalResources();
+  });
+
+  // Enhanced Service Worker registration for mobile
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('SW registered with scope:', registration.scope);
+          
+          // Update available
+          registration.addEventListener('updatefound', function() {
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content available, prompt user to refresh
+                if (confirm('New content available! Click OK to refresh.')) {
+                  window.location.reload();
+                }
+              }
+            });
+          });
+        })
+        .catch(function(error) {
+          console.log('SW registration failed:', error);
+        });
+    });
+  }
+
+  // Network status detection for mobile
+  if ('connection' in navigator) {
+    const connection = navigator.connection;
+    
+    function updateConnectionStatus() {
+      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+        // Enable ultra-fast mode for slow connections
+        document.documentElement.classList.add('slow-connection');
+        
+        // Disable non-essential features
+        const animations = document.querySelectorAll('*');
+        animations.forEach(el => {
+          el.style.animationDuration = '0s';
+          el.style.transitionDuration = '0s';
+        });
+      }
+    }
+    
+    updateConnectionStatus();
+    connection.addEventListener('change', updateConnectionStatus);
+  }
+</script>

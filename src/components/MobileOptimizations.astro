@@ -1,0 +1,257 @@
+---
+// Mobile performance optimizations
+---
+<script>
+  // Mobile-specific optimizations
+  if (typeof window !== 'undefined') {
+    // Passive event listeners for better scroll performance
+    const passiveSupported = (() => {
+      let passiveSupported = false;
+      try {
+        const options = Object.defineProperty({}, 'passive', {
+          get: () => {
+            passiveSupported = true;
+            return false;
+          }
+        });
+        window.addEventListener('test', null, options);
+      } catch (err) {}
+      return passiveSupported;
+    })();
+
+    // Optimize scroll performance
+    if (passiveSupported) {
+      window.addEventListener('scroll', () => {
+        // Throttled scroll handler
+      }, { passive: true });
+      
+      window.addEventListener('touchstart', () => {
+        // Touch handler
+      }, { passive: true });
+    }
+
+    // Reduce repaints and reflows on mobile
+    const mobileOptimizations = () => {
+      // Disable hover effects on touch devices
+      if ('ontouchstart' in window) {
+        document.documentElement.classList.add('touch-device');
+        
+        // Add CSS for touch devices
+        const style = document.createElement('style');
+        style.textContent = `
+          .touch-device *:hover {
+            -webkit-tap-highlight-color: transparent;
+          }
+          .touch-device * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          .touch-device input, .touch-device textarea {
+            -webkit-user-select: text;
+            user-select: text;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Optimize images for mobile - CRITICAL CLS FIX
+      const images = document.querySelectorAll('img');
+      images.forEach(img => {
+        // Reserve space immediately to prevent CLS
+        if (!img.style.width && !img.style.height) {
+          const computedStyle = window.getComputedStyle(img);
+          if (computedStyle.width === 'auto' || computedStyle.height === 'auto') {
+            // Set explicit dimensions
+            if (img.getAttribute('width') && img.getAttribute('height')) {
+              img.style.width = img.getAttribute('width') + 'px';
+              img.style.height = img.getAttribute('height') + 'px';
+            }
+          }
+        }
+        
+        // Add loading placeholder with reserved space
+        if (!img.complete) {
+          img.style.backgroundColor = '#f0f0f0';
+          img.style.minHeight = img.style.height || '100px';
+          img.addEventListener('load', () => {
+            img.style.backgroundColor = 'transparent';
+          }, { once: true });
+        }
+      });
+
+      // Preload critical CSS for LCP improvement
+      if (window.innerWidth <= 768) {
+        // Mobile-specific critical resource preloading - dynamic detection
+        const criticalStylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+          .slice(0, 2) // Only preload first 2 stylesheets
+          .map(link => link.href);
+          
+        criticalStylesheets.forEach(href => {
+          if (href && !document.querySelector(`link[rel="preload"][href="${href}"]`)) {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'style';
+            link.href = href;
+            document.head.appendChild(link);
+          }
+        });
+      }
+    };
+
+    // Run optimizations when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', mobileOptimizations);
+    } else {
+      mobileOptimizations();
+    }
+
+    // CRITICAL: Force immediate layout completion for LCP
+    const forceLayoutCompletion = () => {
+      // Force reflow to complete all layout calculations
+      document.body.offsetHeight;
+      
+      // Mark critical elements as rendered
+      const criticalElements = document.querySelectorAll('h1, img[fetchpriority="high"], .author-container');
+      criticalElements.forEach(el => {
+        el.style.contain = 'layout style paint';
+        el.style.willChange = 'auto';
+      });
+      
+      // Remove any lazy loading classes on mobile
+      if (window.innerWidth <= 768) {
+        document.querySelectorAll('.lazy-component').forEach(el => {
+          el.classList.add('loaded');
+          el.style.opacity = '1';
+          el.style.transform = 'none';
+        });
+      }
+    };
+
+    // Execute immediately
+    forceLayoutCompletion();
+    
+    // Execute again after fonts load
+    document.fonts.ready.then(forceLayoutCompletion);
+
+    // Intersection Observer for lazy loading
+    if ('IntersectionObserver' in window) {
+      const lazyObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const element = entry.target;
+            
+            // Lazy load images
+            if (element.tagName === 'IMG' && element.dataset.src) {
+              element.src = element.dataset.src;
+              element.removeAttribute('data-src');
+              lazyObserver.unobserve(element);
+            }
+            
+            // Lazy load components
+            if (element.classList.contains('lazy-component')) {
+              element.classList.add('loaded');
+              lazyObserver.unobserve(element);
+            }
+          }
+        });
+      }, {
+        rootMargin: '50px',
+        threshold: 0.1
+      });
+
+      // Observe lazy elements
+      document.querySelectorAll('[data-src], .lazy-component').forEach(el => {
+        lazyObserver.observe(el);
+      });
+    }
+
+    // Resource hints for mobile
+    const addResourceHints = () => {
+      const hints = [
+        { rel: 'dns-prefetch', href: '//fonts.gstatic.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true }
+      ];
+
+      hints.forEach(hint => {
+        const link = document.createElement('link');
+        Object.assign(link, hint);
+        document.head.appendChild(link);
+      });
+    };
+
+    addResourceHints();
+  }
+</script>
+
+<style>
+  /* Mobile-specific styles - CRITICAL CLS & LCP FIXES */
+  @media (max-width: 768px) {
+    /* Force immediate layout stability */
+    * {
+      will-change: auto !important;
+      transform: none !important;
+    }
+    
+    /* Container containment to prevent layout shifts */
+    .container, main, section, article {
+      contain: layout style;
+    }
+    
+    /* Fix image dimensions */
+    img {
+      width: auto !important;
+      height: auto !important;
+      max-width: 100% !important;
+      display: block !important;
+      contain: layout style paint !important;
+    }
+    
+    /* Optimize scrolling */
+    body {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+      contain: layout style;
+    }
+    
+    /* Hide complex elements on small screens */
+    .desktop-only {
+      display: none !important;
+    }
+    
+    /* Force synchronous rendering for critical elements */
+    h1, h2, .author-container, .avatar-container {
+      contain: layout style paint !important;
+      will-change: auto !important;
+    }
+    
+    /* Prevent text reflow */
+    p, span, div {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+  }
+  
+  /* Eliminate ALL loading states that cause CLS */
+  .lazy-component {
+    /* Remove transitions that cause layout shifts */
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  .lazy-component.loaded {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  
+  /* Force immediate visibility for critical content */
+  @media (max-width: 768px) {
+    .lazy-component {
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>

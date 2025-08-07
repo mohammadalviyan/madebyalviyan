@@ -1,0 +1,51 @@
+---
+// Error boundary for JavaScript components
+---
+<script>
+  // Global error handling
+  window.addEventListener('error', function(e) {
+    console.error('JavaScript error:', e.error);
+    // Send to analytics if needed
+    // analytics.track('javascript_error', { error: e.error.message });
+  });
+
+  window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled promise rejection:', e.reason);
+    // Send to analytics if needed
+    // analytics.track('promise_rejection', { reason: e.reason });
+  });
+
+  // Performance monitoring
+  if ('performance' in window && 'PerformanceObserver' in window) {
+    // Largest Contentful Paint
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        console.log('LCP:', entry.startTime);
+        // Send to analytics
+        // analytics.track('lcp', { value: entry.startTime });
+      }
+    }).observe({ entryTypes: ['largest-contentful-paint'] });
+
+    // First Input Delay
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        console.log('FID:', entry.processingStart - entry.startTime);
+        // Send to analytics
+        // analytics.track('fid', { value: entry.processingStart - entry.startTime });
+      }
+    }).observe({ entryTypes: ['first-input'] });
+
+    // Cumulative Layout Shift
+    new PerformanceObserver((entryList) => {
+      let clsValue = 0;
+      for (const entry of entryList.getEntries()) {
+        if (!entry.hadRecentInput) {
+          clsValue += entry.value;
+        }
+      }
+      console.log('CLS:', clsValue);
+      // Send to analytics
+      // analytics.track('cls', { value: clsValue });
+    }).observe({ entryTypes: ['layout-shift'] });
+  }
+</script>

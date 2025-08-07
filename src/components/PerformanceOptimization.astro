@@ -1,0 +1,240 @@
+---
+// Mobile Performance Optimization Component
+---
+<script is:inline>
+  // Critical performance fixes for mobile Lighthouse optimization
+  (function() {
+    // Early mobile detection
+    const isMobile = window.innerWidth <= 768;
+    const isSlowConnection = navigator.connection && 
+      (navigator.connection.effectiveType === 'slow-2g' || navigator.connection.effectiveType === '2g');
+    
+    // 1. Fix X-Frame-Options error by removing conflicting headers
+    // This is now handled in the CSP header in Head.astro
+    
+    // 2. Preload critical resources immediately on mobile
+    if (isMobile) {
+      const criticalResources = [
+        '/src/assets/fonts/Inter-Regular.woff2',
+        '/src/assets/fonts/InterVariable.woff2'
+      ];
+      
+      criticalResources.forEach((href, index) => {
+        setTimeout(() => {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'font';
+          link.type = 'font/woff2';
+          link.crossOrigin = 'anonymous';
+          link.href = href;
+          document.head.appendChild(link);
+        }, index * 10); // Stagger to prevent blocking
+      });
+    }
+    
+    // 3. Force immediate layout completion for LCP improvement
+    const optimizeLCP = () => {
+      // Force synchronous style calculation
+      document.body.offsetHeight;
+      
+      // Mark critical elements as high priority
+      const criticalElements = document.querySelectorAll('img[fetchpriority="high"], .author-container, h1');
+      criticalElements.forEach(el => {
+        el.style.contain = 'layout style paint';
+        el.style.willChange = 'auto';
+      });
+      
+      // Remove lazy loading on critical images for mobile
+      if (isMobile) {
+        const criticalImages = document.querySelectorAll('img[loading="lazy"][fetchpriority="high"]');
+        criticalImages.forEach(img => {
+          img.loading = 'eager';
+          img.decoding = 'sync';
+        });
+      }
+    };
+    
+    // 4. Eliminate CLS by reserving space for dynamic content
+    const preventCLS = () => {
+      const images = document.querySelectorAll('img:not([width]):not([height])');
+      images.forEach(img => {
+        if (!img.style.aspectRatio) {
+          // Set default aspect ratio for images without dimensions
+          img.style.aspectRatio = '16/9';
+          img.style.backgroundColor = '#f0f0f0';
+        }
+      });
+      
+      // Force container queries to establish layout
+      const containers = document.querySelectorAll('.container, main, section');
+      containers.forEach(container => {
+        container.style.contain = 'layout style';
+      });
+    };
+    
+    // 5. Optimize for slow connections
+    if (isSlowConnection) {
+      // Disable all animations
+      const style = document.createElement('style');
+      style.textContent = `
+        *, *::before, *::after {
+          animation-duration: 0s !important;
+          animation-delay: 0s !important;
+          transition-duration: 0s !important;
+          transition-delay: 0s !important;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Reduce image quality
+      const images = document.querySelectorAll('img');
+      images.forEach(img => {
+        if (img.src.includes('.avif') || img.src.includes('.webp')) {
+          img.style.imageRendering = 'optimizeSpeed';
+        }
+      });
+    }
+    
+    // 6. Execute optimizations based on page load state
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        optimizeLCP();
+        preventCLS();
+      });
+    } else {
+      optimizeLCP();
+      preventCLS();
+    }
+    
+    // 7. Font loading optimization
+    if (document.fonts) {
+      // Preload critical font weights
+      const fontPromises = [
+        document.fonts.load('400 16px Inter'),
+        document.fonts.load('500 16px Inter'),
+        document.fonts.load('600 16px Inter')
+      ];
+      
+      Promise.allSettled(fontPromises).then(() => {
+        document.documentElement.classList.add('fonts-loaded');
+        // Trigger final layout completion
+        requestAnimationFrame(() => {
+          document.body.offsetHeight;
+        });
+      });
+    }
+    
+    // 8. Network-aware loading
+    if (navigator.connection) {
+      const connection = navigator.connection;
+      
+      const updateForConnection = () => {
+        if (connection.effectiveType === '4g' && !isMobile) {
+          // High-speed connection: preload additional resources
+          const additionalResources = document.querySelectorAll('[data-preload]');
+          additionalResources.forEach(el => {
+            const href = el.dataset.preload;
+            if (href) {
+              const link = document.createElement('link');
+              link.rel = 'preload';
+              link.href = href;
+              link.as = el.dataset.as || 'fetch';
+              document.head.appendChild(link);
+            }
+          });
+        }
+      };
+      
+      updateForConnection();
+      connection.addEventListener('change', updateForConnection);
+    }
+    
+    // 9. Error handling for missing resources
+    document.addEventListener('error', (e) => {
+      if (e.target.tagName === 'IMG') {
+        const img = e.target;
+        // Replace with placeholder
+        img.style.backgroundColor = '#f0f0f0';
+        img.style.display = 'block';
+        img.alt = 'Image unavailable';
+        console.warn('Image failed to load:', img.src);
+      }
+    }, true);
+    
+    // 10. Monitor Core Web Vitals (simplified)
+    if ('PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            // Track LCP
+            if (entry.entryType === 'largest-contentful-paint') {
+              console.log('LCP:', entry.startTime + 'ms');
+            }
+            
+            // Track CLS
+            if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
+              console.log('CLS shift:', entry.value);
+            }
+          });
+        });
+        
+        observer.observe({type: 'largest-contentful-paint', buffered: true});
+        observer.observe({type: 'layout-shift', buffered: true});
+      } catch (e) {
+        console.warn('Performance monitoring not supported');
+      }
+    }
+  })();
+</script>
+
+<style>
+  /* Critical mobile performance styles */
+  @media (max-width: 768px) {
+    /* Force hardware acceleration for key elements */
+    .author-container,
+    .avatar-container,
+    h1, h2, h3 {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      will-change: auto;
+    }
+    
+    /* Optimize scroll performance */
+    body {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+    }
+    
+    /* Reduce repaints */
+    * {
+      -webkit-font-smoothing: subpixel-antialiased;
+      text-rendering: optimizeSpeed;
+    }
+    
+    /* Fix tap targets for accessibility */
+    a, button, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+  
+  /* Slow connection optimizations */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  
+  /* High contrast for better accessibility */
+  @media (prefers-contrast: high) {
+    img {
+      filter: contrast(1.2);
+    }
+  }
+</style>

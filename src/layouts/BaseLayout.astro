@@ -1,0 +1,35 @@
+---
+import '@/styles/global.css';
+import '@/assets/fonts/inter.css';
+import { type Seo } from '@/lib/constants';
+import Header from '@/components/partials/Header.astro';
+import Footer from '@/components/partials/Footer.astro';
+import Head from '@/components/partials/Head.astro';
+import SwitchTheme from '@/components/SwitchTheme.tsx';
+import ErrorBoundary from '@/components/ErrorBoundary.astro';
+import MobilePerformanceOptimizer from '@/components/MobilePerformanceOptimizer.astro';
+
+interface Props {
+  seo?: Seo
+}
+
+const { seo } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <Head seo={seo} />
+  <body class="bg-background text-foreground pb-12">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md z-50 focus:outline-2 focus:outline-blue-500">
+      Skip to main content
+    </a>
+    <Header />
+    <main id="main-content" class="pt-24" role="main">
+      <slot />
+    </main>
+    <Footer />
+    <SwitchTheme client:load />
+    <ErrorBoundary />
+    <MobilePerformanceOptimizer />
+  </body>
+</html>

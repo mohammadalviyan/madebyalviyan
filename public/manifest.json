@@ -1,0 +1,22 @@
+{
+  "name": "Made by Alviyan",
+  "short_name": "Alviyan",
+  "description": "Backend Engineer with expertise in Golang and JavaScript, building scalable systems",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#ff6b35",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "developer", "technology"],
+  "lang": "en",
+  "scope": "/",
+  "prefer_related_applications": false
+}

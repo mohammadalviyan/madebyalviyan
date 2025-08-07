@@ -1,0 +1,85 @@
+---
+import { Image } from 'astro:assets';
+import { getImage } from 'astro:assets';
+import type { AuthorInfo } from '@/lib/constants';
+
+interface Props extends AuthorInfo {}
+const { avatar, name, headline, username, location, pronouns } = Astro.props;
+
+// Generate fallback formats to prevent 404 errors
+const avatarFormats = [];
+try {
+  const avifImage = await getImage({ 
+    src: avatar, 
+    format: 'avif',
+    width: 92,
+    height: 92
+  });
+  avatarFormats.push({ src: avifImage.src, type: 'image/avif' });
+} catch (e) {
+  console.warn('AVIF format failed, falling back');
+}
+
+try {
+  const webpImage = await getImage({ 
+    src: avatar, 
+    format: 'webp',
+    width: 92,
+    height: 92
+  });
+  avatarFormats.push({ src: webpImage.src, type: 'image/webp' });
+} catch (e) {
+  console.warn('WebP format failed, falling back');
+}
+
+const jpgImage = await getImage({ 
+  src: avatar, 
+  format: 'jpg',
+  width: 92,
+  height: 92
+});
+avatarFormats.push({ src: jpgImage.src, type: 'image/jpeg' });
+
+const primaryImage = avatarFormats[0] || jpgImage;
+---
+
+<div class="flex items-center gap-4 author-container" style="contain: layout style;">
+  <div class="relative rounded-full shrink-0 overflow-hidden" style="width: 92px; height: 92px; contain: layout style paint;">
+    <picture>
+      {avatarFormats.slice(0, -1).map(format => (
+        <source srcset={format.src} type={format.type} />
+      ))}
+      <img
+        loading="eager"
+        src={primaryImage.src}
+        alt={`Profile photo of ${name}, Backend Engineer and Poultry Farmer`}
+        width="92"
+        height="92"
+        class="rounded-full object-cover"
+        fetchpriority="high"
+        decoding="sync"
+        style="aspect-ratio: 1; contain: layout style paint; width: 92px; height: 92px; background-color: #f0f0f0;"
+        onError="this.style.backgroundColor='#f0f0f0'; this.alt='Avatar unavailable';"
+      />
+    </picture>
+  </div>
+  <div class="flex flex-col gap-2" style="contain: layout style;">
+    <div class="flex flex-col gap-0.5">
+      <h1 class="text-xl font-semibold text-headings leading-tight" style="contain: layout style;">{name}</h1>
+      <p class="text-base text-foreground leading-tight" style="contain: layout style;">
+        {headline} in {' '}
+        <span>
+          {location}
+        </span>,
+        {pronouns && (
+          <span>
+            {pronouns}
+          </span>
+        )}
+      </p>
+    </div>
+    <span class="text-foreground text-sm bg-muted-foreground/40 px-2 py-1 rounded-full w-max leading-none" style="contain: layout style;">
+      {username}
+    </span>
+  </div>
+</div>

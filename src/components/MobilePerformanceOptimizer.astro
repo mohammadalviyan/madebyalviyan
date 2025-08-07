@@ -1,0 +1,112 @@
+---
+// Simplified Mobile Performance Optimizer
+---
+<script is:inline>
+  // Critical mobile performance fixes
+  (function() {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // Force immediate layout completion
+      document.body.offsetHeight;
+      
+      // Optimize critical images for LCP
+      const criticalImages = document.querySelectorAll('img[fetchpriority="high"], .author-container img, .avatar-container img');
+      criticalImages.forEach(img => {
+        // Force eager loading and sync decoding
+        img.loading = 'eager';
+        img.decoding = 'sync';
+        
+        // Ensure dimensions are set
+        if (img.getAttribute('width') && img.getAttribute('height')) {
+          img.style.width = img.getAttribute('width') + 'px';
+          img.style.height = img.getAttribute('height') + 'px';
+        }
+        
+        // Add containment for performance
+        img.style.contain = 'layout style paint';
+        
+        // Add error handling to prevent 404 issues
+        img.addEventListener('error', function() {
+          this.style.backgroundColor = '#f0f0f0';
+          this.style.display = 'block';
+          this.alt = 'Image unavailable';
+        }, { once: true });
+      });
+      
+      // Disable all transitions and animations for LCP improvement
+      const performanceStyle = document.createElement('style');
+      performanceStyle.textContent = `
+        @media (max-width: 768px) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-delay: 0s !important;
+            transition-duration: 0.01ms !important;
+            transition-delay: 0s !important;
+          }
+          
+          /* Force immediate visibility of lazy components */
+          .lazy-component {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
+          
+          /* Container containment for layout stability */
+          .container, main, section, article {
+            contain: layout style;
+          }
+          
+          /* Optimize images for mobile */
+          img {
+            contain: layout style paint !important;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+          }
+        }
+      `;
+      document.head.appendChild(performanceStyle);
+      
+      // Remove lazy loading from critical elements
+      document.querySelectorAll('.lazy-component').forEach(el => {
+        el.classList.add('loaded');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      });
+      
+      // Passive touch event listeners for better performance
+      document.addEventListener('touchstart', function() {}, { passive: true });
+      document.addEventListener('touchmove', function() {}, { passive: true });
+    }
+    
+    // Network-aware optimizations
+    if (navigator.connection) {
+      const connection = navigator.connection;
+      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+        // Ultra-fast mode for slow connections
+        const fastModeStyle = document.createElement('style');
+        fastModeStyle.textContent = `
+          * {
+            animation: none !important;
+            transition: none !important;
+          }
+          img {
+            image-rendering: optimizeSpeed;
+          }
+        `;
+        document.head.appendChild(fastModeStyle);
+      }
+    }
+    
+    // Early error handling for network issues
+    window.addEventListener('error', function(e) {
+      if (e.target && e.target.tagName === 'IMG') {
+        const img = e.target;
+        img.style.backgroundColor = '#f0f0f0';
+        img.style.minHeight = '52px';
+        img.alt = 'Image not available';
+      }
+    }, true);
+    
+  })();
+</script>

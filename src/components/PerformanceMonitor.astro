@@ -1,0 +1,132 @@
+---
+// Performance monitoring for Core Web Vitals
+---
+<script>
+if (typeof window !== 'undefined') {
+  // Track Core Web Vitals
+  const trackWebVitals = () => {
+    // Track CLS (Cumulative Layout Shift)
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        if (!entry.hadRecentInput) {
+          console.log('CLS detected:', entry.value);
+          // Send to analytics if needed
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'CLS', {
+              event_category: 'Web Vitals',
+              value: Math.round(entry.value * 1000),
+              non_interaction: true,
+            });
+          }
+        }
+      }
+    }).observe({ entryTypes: ['layout-shift'] });
+
+    // Track LCP (Largest Contentful Paint)
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        console.log('LCP detected:', entry.startTime, 'Element:', entry.element);
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'LCP', {
+            event_category: 'Web Vitals',
+            value: Math.round(entry.startTime),
+            non_interaction: true,
+          });
+        }
+      }
+    }).observe({ entryTypes: ['largest-contentful-paint'] });
+
+    // Track FCP (First Contentful Paint)
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        console.log('FCP detected:', entry.startTime);
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'FCP', {
+            event_category: 'Web Vitals',
+            value: Math.round(entry.startTime),
+            non_interaction: true,
+          });
+        }
+      }
+    }).observe({ entryTypes: ['paint'] });
+
+    // Track FID (First Input Delay) via INP proxy
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        console.log('INP detected:', entry.processingStart - entry.startTime);
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'FID', {
+            event_category: 'Web Vitals',
+            value: Math.round(entry.processingStart - entry.startTime),
+            non_interaction: true,
+          });
+        }
+      }
+    }).observe({ entryTypes: ['event'] });
+  };
+
+  // Mobile performance monitoring
+  const monitorMobilePerformance = () => {
+    if (window.innerWidth <= 768) {
+      // Monitor for slow frames
+      let lastTime = performance.now();
+      const checkFrameRate = () => {
+        const now = performance.now();
+        const delta = now - lastTime;
+        if (delta > 16.67) { // More than 60fps
+          console.warn('Slow frame detected:', delta + 'ms');
+        }
+        lastTime = now;
+        requestAnimationFrame(checkFrameRate);
+      };
+      requestAnimationFrame(checkFrameRate);
+
+      // Monitor memory usage
+      if ('memory' in performance) {
+        setInterval(() => {
+          const memory = performance.memory;
+          if (memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.9) {
+            console.warn('High memory usage detected:', memory.usedJSHeapSize);
+          }
+        }, 30000); // Check every 30 seconds
+      }
+    }
+  };
+
+  // Resource loading performance
+  const monitorResourceLoading = () => {
+    window.addEventListener('load', () => {
+      const navigation = performance.getEntriesByType('navigation')[0];
+      console.log('Navigation timing:', {
+        DNS: navigation.domainLookupEnd - navigation.domainLookupStart,
+        TCP: navigation.connectEnd - navigation.connectStart,
+        Request: navigation.responseStart - navigation.requestStart,
+        Response: navigation.responseEnd - navigation.responseStart,
+        DOM: navigation.domContentLoadedEventEnd - navigation.responseEnd,
+        Load: navigation.loadEventEnd - navigation.loadEventStart,
+      });
+
+      // Monitor slow resources
+      const resources = performance.getEntriesByType('resource');
+      resources.forEach(resource => {
+        if (resource.duration > 1000) { // Slower than 1 second
+          console.warn('Slow resource:', resource.name, resource.duration + 'ms');
+        }
+      });
+    });
+  };
+
+  // Initialize monitoring
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      trackWebVitals();
+      monitorMobilePerformance();
+      monitorResourceLoading();
+    });
+  } else {
+    trackWebVitals();
+    monitorMobilePerformance();
+    monitorResourceLoading();
+  }
+}
+</script>

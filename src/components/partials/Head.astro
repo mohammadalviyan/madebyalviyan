@@ -1,0 +1,286 @@
+---
+import { getImage, Font } from 'astro:assets';
+import type { Seo } from '@/lib/constants'
+import { DEFAULT_CONFIGURATION } from '@/lib/constants';
+import { generateAbsoluteUrl } from '@/lib/utils';
+import CriticalCSS from '@/components/CriticalCSS.astro';
+
+interface Props {
+  seo?: Seo;
+}
+
+const defaultSeo = DEFAULT_CONFIGURATION.seo;
+const { seo } = Astro.props;
+
+const image = await getImage({ src: seo?.image || defaultSeo.image, format: 'jpg'});
+const seoImage = generateAbsoluteUrl(image.src);
+
+// Get the LCP avatar image for preloading with fallbacks
+let avatarImage;
+try {
+  avatarImage = await getImage({ 
+    src: DEFAULT_CONFIGURATION.author.avatar, 
+    format: 'avif',
+    width: 92,
+    height: 92
+  });
+} catch (e) {
+  console.warn('AVIF format failed, falling back to WebP');
+  try {
+    avatarImage = await getImage({ 
+      src: DEFAULT_CONFIGURATION.author.avatar, 
+      format: 'webp',
+      width: 92,
+      height: 92
+    });
+  } catch (e2) {
+    console.warn('WebP format failed, falling back to JPG');
+    avatarImage = await getImage({ 
+      src: DEFAULT_CONFIGURATION.author.avatar, 
+      format: 'jpg',
+      width: 92,
+      height: 92
+    });
+  }
+}
+---
+<head>
+  <meta charset="utf-8" />
+  <link rel="sitemap" href="/sitemap-index.xml" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  
+  <!-- Critical CSS for immediate rendering -->
+  <CriticalCSS />
+  
+  <Font cssVariable="--font-inter" preload />
+  <Font cssVariable="--font-inter-variable" preload />
+  
+  <!-- Preload LCP image for mobile performance -->
+  <link rel="preload" as="image" href={avatarImage.src} fetchpriority="high" />
+  
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <!-- Resource hints -->
+  <link rel="dns-prefetch" href="//github.com" />
+  <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+  
+  <!-- Mobile optimization meta -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+  
+  { seo?.canonicalUrl && <link rel="canonical" href={seo?.canonicalUrl} />}
+  <title>{seo?.title || defaultSeo.title}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="generator" content={Astro.generator} />
+  <meta name="description" content={seo?.description || defaultSeo.description} />
+  <slot name="keywords">
+    <meta name="keywords" content={seo?.keywords || defaultSeo.keywords} />
+  </slot>
+  <meta name="robots" content={seo?.robots || defaultSeo.robots} />
+  <!-- OpenGraph Meta -->
+  <meta property="og:type" content={seo?.type ?? 'website'} />
+  <meta property="og:site_name" content={defaultSeo.title} />
+  <meta property="og:title" content={seo?.title || defaultSeo.title} />
+  <meta property="og:description" content={seo?.description || defaultSeo.description} />
+  <meta property="og:image" content={seoImage} />
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="720" />
+  <!-- Twitter Meta -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:creator" content={seo?.twitter?.creator || defaultSeo.twitter?.creator} />
+  <meta property="twitter:site" content={seo?.twitter?.creator || defaultSeo.twitter?.creator} />
+  <meta property="twitter:title" content={seo?.title || defaultSeo.title} />
+  <meta property="twitter:description" content={seo?.description || defaultSeo.description} />
+  <meta property="twitter:image" content={seoImage} />
+  
+  <!-- Additional Meta Tags -->
+  <meta property="og:url" content={Astro.url.href} />
+  <meta property="og:locale" content="en_US" />
+  <meta name="author" content="Mohammad Alviyan Anwari" />
+  <meta name="theme-color" content="#ff6b35" />
+  <meta name="msapplication-TileColor" content="#ff6b35" />
+  
+  <!-- Language and Hreflang -->
+  <link rel="alternate" hreflang="en" href={Astro.url.href} />
+  <link rel="alternate" hreflang="x-default" href={Astro.url.href} />
+  
+  <!-- Additional SEO improvements -->
+  <meta name="geo.region" content="ID-JI" />
+  <meta name="geo.placename" content="Kediri City" />
+  <meta name="geo.position" content="-7.816667;112.016667" />
+  <meta name="ICBM" content="-7.816667, 112.016667" />
+  
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-title" content="Alviyan" />
+  <meta name="application-name" content="Made by Alviyan" />
+  
+  <!-- Performance hints -->
+  <meta name="resource-type" content="document" />
+  <meta name="cache-control" content="public, max-age=31536000" />
+  <meta http-equiv="Accept-CH" content="DPR, Viewport-Width, Width" />
+  
+  <!-- Security Headers - Fixed X-Frame-Options conflict -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';" />
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+  
+  <!-- Additional SEO Meta Tags -->
+  <meta name="googlebot" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <meta name="bingbot" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <meta name="slurp" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <meta name="rating" content="general" />
+  <meta name="distribution" content="global" />
+  <meta name="language" content="en" />
+  <meta name="revisit-after" content="7 days" />
+  <meta name="coverage" content="worldwide" />
+  <meta name="target" content="all" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Mohammad Alviyan Anwari",
+    "alternateName": "iian",
+    "description": "Backend Engineer with expertise in Golang and JavaScript, building scalable systems and poultry farmer breeding Muscovy ducks and chickens",
+    "url": Astro.site,
+    "image": seoImage,
+    "jobTitle": "Backend Engineer",
+    "worksFor": {
+      "@type": "Organization",
+      "name": "Tech Industry"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Kediri City",
+      "addressCountry": "Indonesia"
+    },
+    "knowsAbout": [
+      "Golang",
+      "JavaScript",
+      "Backend Development",
+      "API Development",
+      "System Architecture",
+      "Poultry Farming",
+      "Muscovy Ducks",
+      "Chickens"
+    ],
+    "sameAs": [
+      "https://github.com/mohammadalviyan",
+      "https://madebyalviyan.com"
+    ]
+  })} />
+  
+  <!-- Website Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": defaultSeo.title,
+    "description": defaultSeo.description,
+    "url": Astro.site,
+    "author": {
+      "@type": "Person",
+      "name": "Mohammad Alviyan Anwari"
+    },
+    "inLanguage": "en-US",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${Astro.site}?q={search_term_string}`
+      },
+      "query-input": "required name=search_term_string"
+    }
+  })} />
+  
+  <!-- Professional Profile Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "mainEntity": {
+      "@type": "Person",
+      "name": "Mohammad Alviyan Anwari",
+      "jobTitle": "Backend Engineer",
+      "knowsLanguage": "en",
+      "nationality": "Indonesian"
+    }
+  })} />
+  
+    <!-- Critical performance script for mobile LCP/CLS fixes -->
+  <script is:inline>
+    // CRITICAL: Fix mobile performance issues immediately
+    function initializePerformanceOptimizations() {
+      const isMobile = window.innerWidth <= 768;
+      
+      // Force immediate layout completion (only if body exists)
+      if (document.body) {
+        document.body.offsetHeight;
+      }
+      
+      // Fix avatar image loading for LCP
+      if (isMobile) {
+        // Remove any lazy loading that might delay LCP
+        const criticalImages = document.querySelectorAll('img[fetchpriority="high"]');
+        criticalImages.forEach(img => {
+          img.loading = 'eager';
+          img.decoding = 'sync';
+          // Reserve space immediately but don't force dimensions that might cause layout issues
+          if (img.width && img.height) {
+            img.style.aspectRatio = `${img.width} / ${img.height}`;
+            // Remove contain property that might cause scroll issues
+          }
+        });
+      }
+      
+      // Font loading optimization
+      if (document.fonts) {
+        Promise.all([
+          document.fonts.load('400 16px Inter'),
+          document.fonts.load('500 16px Inter'),
+          document.fonts.load('600 16px Inter')
+        ]).then(() => {
+          document.documentElement.classList.add('fonts-loaded');
+          // Force layout completion after fonts load (only if body exists)
+          if (document.body) {
+            document.body.offsetHeight;
+          }
+        }).catch(() => {
+          // Fallback to system fonts
+          document.documentElement.classList.add('fonts-loaded');
+        });
+      }
+      
+      // Light mobile optimizations (removed aggressive scroll modifications)
+      if (isMobile) {
+        // Optimize touch performance
+        document.addEventListener('touchstart', function() {}, { passive: true });
+        document.addEventListener('touchmove', function() {}, { passive: true });
+      }
+    }
+
+    // Run immediately for critical parts, then again when DOM is ready
+    // Theme detection should happen immediately to prevent flash
+    const theme = localStorage.getItem('theme') || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+
+    // Run the rest when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializePerformanceOptimizations);
+    } else {
+      initializePerformanceOptimizations();
+    }
+  </script>
+  
+  <slot />
+</head>

@@ -1,0 +1,54 @@
+---
+// Lazy loading images component with intersection observer
+interface Props {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+}
+
+const { 
+  src, 
+  alt, 
+  width, 
+  height, 
+  class: className,
+  loading = 'lazy',
+  fetchpriority = 'auto'
+} = Astro.props;
+---
+
+<img 
+  src={src}
+  alt={alt}
+  width={width}
+  height={height}
+  class={className}
+  loading={loading}
+  fetchpriority={fetchpriority}
+  decoding="async"
+  onload="this.style.opacity='1'"
+  style="opacity:0;transition:opacity 0.3s ease-in-out"
+/>
+
+<script>
+  // Enhanced lazy loading with intersection observer
+  if ('IntersectionObserver' in window) {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target as HTMLImageElement;
+          img.style.opacity = '1';
+          observer.unobserve(img);
+        }
+      });
+    });
+
+    document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+      imageObserver.observe(img);
+    });
+  }
+</script>
