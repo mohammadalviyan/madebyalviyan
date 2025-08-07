@@ -46,9 +46,20 @@ The `dependabot.yml` file configures automatic dependency updates:
 
 ### For GitHub Pages Deployment
 
-1. Go to your repository Settings → Pages
-2. Set Source to "GitHub Actions"
-3. The deploy workflow will automatically run on pushes to master
+**⚠️ IMPORTANT: Enable GitHub Pages first!**
+
+1. **Go to your repository Settings → Pages**
+2. **Set Source to "GitHub Actions"**
+3. **The deploy workflow will automatically run on pushes to master**
+
+If you skip step 2, the deployment will fail with "Get Pages site failed" error.
+
+### Alternative: Manual Deployment
+
+If you don't want to use GitHub Pages, the `build.yml` workflow will:
+- Build your site on every push
+- Upload build artifacts for manual download
+- Allow you to deploy the `dist/` folder to any hosting service
 
 ### For Custom Domain
 
@@ -78,14 +89,31 @@ You can monitor workflow status in the Actions tab of your repository. Each work
 ### Build Failures
 - Check the CI workflow logs for specific error messages
 - Ensure all dependencies are properly listed in `package.json`
-- Verify Bun lockfile is committed (`bun.lockb`)
+- Verify npm lockfile is committed (`package-lock.json`)
 
 ### Deployment Issues
+
+#### "Get Pages site failed" Error
+- **Cause**: GitHub Pages is not enabled in repository settings
+- **Solution**: Go to Settings → Pages → Set Source to "GitHub Actions"
+- **Alternative**: Use the `build.yml` workflow for manual deployment
+
+#### Build Success but Deployment Fails
 - Verify GitHub Pages is enabled
 - Check that the site URL in `astro.config.mjs` matches your deployment target
-- Ensure the deploy workflow has proper permissions
+- Ensure the deploy workflow has proper permissions (should be automatic)
+
+#### Custom Domain Issues
+- Update `astro.config.mjs` with your domain
+- Add CNAME file in `public/` directory if needed
+- Verify DNS settings point to GitHub Pages
 
 ### Security Alerts
 - Review security audit outputs in the security workflow
 - Update dependencies as recommended by Dependabot PRs
 - Check dependency review comments on pull requests
+
+### Getting Help
+- Check workflow logs in the Actions tab
+- Review the error messages in build artifacts
+- Ensure all required files are committed to the repository
